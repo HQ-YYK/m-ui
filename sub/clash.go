@@ -665,6 +665,10 @@ type extGroup struct {
 	Members []string
 }
 
+// noGroupExtNames 不生成策略组的外部订阅名:德国只放 GLOBAL 置顶,不单独成组(用户定的)。
+// 这些订阅的节点照常追加,只是不给它们建组。
+var noGroupExtNames = map[string]bool{"德国": true}
+
 // reserveName 在 used 里登记 name;撞名就依次试 "name 2"、"name 3"…,返回最终登记的名字。
 // 规则和现有的节点改名一致(见 BuildClashFor 里的本站节点循环)。
 func reserveName(used map[string]bool, name string) string {
@@ -688,7 +692,7 @@ func reserveName(used map[string]bool, name string) string {
 func appendExternalWithGroups(proxies []interface{}, proxyNames, topNames []string, external []ExtItem, used map[string]bool) ([]interface{}, []string, []string, []extGroup) {
 	groupNames := make([]string, len(external))
 	for i, e := range external {
-		if len(e.Clash) == 0 { // 空订阅不生成组
+		if len(e.Clash) == 0 || noGroupExtNames[e.Name] { // 空订阅不生成组;德国只放 GLOBAL
 			continue
 		}
 		groupNames[i] = reserveName(used, e.Name)
@@ -716,8 +720,8 @@ func appendExternalWithGroups(proxies []interface{}, proxyNames, topNames []stri
 			topNames = append(topNames, final)
 			members = append(members, final) // 最终名字(已去重,不会重复)
 		}
-		if len(members) == 0 {
-			continue // 节点都没有名字,按空订阅处理
+		if len(members) == 0 || groupNames[i] == "" {
+			continue // 节点都没有名字,或是不生成组的订阅(德国),按无组处理;节点已追加
 		}
 		out = append(out, extGroup{Name: groupNames[i], Members: members})
 	}

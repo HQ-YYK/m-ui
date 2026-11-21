@@ -40,6 +40,10 @@ rules:
 			Name:  "空订阅",
 			Clash: nil, // 空订阅不生成组
 		},
+		{
+			Name:  "德国",
+			Clash: []map[string]interface{}{{"name": "德国[备用节点]", "type": "ss", "server": "6.6.6.6", "port": 1, "cipher": "aes-128-gcm", "password": "x"}}, // 德国只放 GLOBAL,不单独成组
+		},
 	}
 	out, err := BuildClashFull(user, lines, entries, tmpl, "", external)
 	if err != nil {
@@ -67,6 +71,9 @@ rules:
 	if _, ok := byName["空订阅"]; ok {
 		t.Fatalf("空订阅不应生成组,实际顺序 %v", order)
 	}
+	if _, ok := byName["德国"]; ok {
+		t.Fatalf("德国只放 GLOBAL,不应单独成组,实际顺序 %v", order)
+	}
 	members := func(name string) []string {
 		g, ok := byName[name]
 		if !ok {
@@ -84,9 +91,9 @@ rules:
 	if got := members("单节点"); strings.Join(got, ",") != "单节点 2" {
 		t.Fatalf("单节点 组成员应为 [单节点 2](节点撞组名已改名),实际 %v", got)
 	}
-	// 外部节点仍进 Auto 组(回归:proxyNames 不能丢)
+	// 外部节点仍进 Auto 组(回归:proxyNames 不能丢);德国节点也在其中(只不建组,节点照常)
 	auto := strings.Join(members("Auto"), ",")
-	for _, want := range []string{"机场A-1", "机场A-2", "单节点 2"} {
+	for _, want := range []string{"机场A-1", "机场A-2", "单节点 2", "德国[备用节点]"} {
 		if !strings.Contains(auto, want) {
 			t.Fatalf("Auto 组应含 %q,实际 [%s]", want, auto)
 		}
